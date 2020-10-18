@@ -60,7 +60,7 @@ type internalList struct {
 }
 
 func (l *internalList) push(t uint32, v float64) {
-	l.il.PushFront(&DataPoint{Timestamp: int64(t), Value: v})
+	l.il.PushFront(DataPoint{Timestamp: int64(t), Value: v})
 	l.frozen = l.il.Len() >= l.lcap
 }
 
@@ -68,15 +68,15 @@ func (l *internalList) len() int {
 	return l.il.Len()
 }
 
-func (l *internalList) front(n int) []*DataPoint {
-	ret := make([]*DataPoint, 0)
+func (l *internalList) front(n int) []DataPoint {
+	ret := make([]DataPoint, 0)
 	front := l.il.Front()
 
 	for i := 0; i < n; i++ {
 		if front == nil {
 			break
 		}
-		ret = append(ret, front.Value.(*DataPoint))
+		ret = append(ret, front.Value.(DataPoint))
 		front = front.Next()
 	}
 	return ret
@@ -171,7 +171,7 @@ func (tl *List) Cap() int {
 }
 
 // GetN
-func (tl *List) GetN(n int) []*DataPoint {
+func (tl *List) GetN(n int) []DataPoint {
 	tl.Lock()
 	defer tl.Unlock()
 
@@ -188,12 +188,12 @@ func (tl *List) GetN(n int) []*DataPoint {
 		}
 	}
 
-	ret := make([]*DataPoint, 0)
+	ret := make([]DataPoint, 0)
 	ret = append(ret, tl.currBlock.front(tl.blockCap)...)
 	n -= tl.currBlock.len()
 
 	front := tl.l.Front()
-	l := make([]*DataPoint, 0)
+	l := make([]DataPoint, 0)
 	for {
 		if front == nil || n < 0 {
 			break
@@ -206,7 +206,7 @@ func (tl *List) GetN(n int) []*DataPoint {
 			cnt++
 			t, v := it.Values()
 			if cnt > tl.blockCap-n {
-				l = append(l, &DataPoint{Timestamp: int64(t), Value: v})
+				l = append(l, DataPoint{Timestamp: int64(t), Value: v})
 			}
 		}
 		ret = append(ret, reserveDps(l)...)
@@ -220,7 +220,7 @@ func (tl *List) GetN(n int) []*DataPoint {
 	return ret
 }
 
-func reserveDps(dps []*DataPoint) []*DataPoint {
+func reserveDps(dps []DataPoint) []DataPoint {
 	for i, j := 0, len(dps)-1; i < j; i, j = i+1, j-1 {
 		dps[i], dps[j] = dps[j], dps[i]
 	}
