@@ -12,15 +12,12 @@ const defaultOverflow = 20
 // List represents the safe-tszlist
 type List struct {
 	sync.Mutex
-	l           list.List
-	currBlock   *internalList
-	remainBlock *internalList
-	blockCap    int
-	limit       int
-	total       int
-
-	fastmode bool
-	front    DataPoint
+	l         list.List
+	currBlock *internalList
+	blockCap  int
+	limit     int
+	total     int
+	front     DataPoint
 }
 
 // Option sets the List options
@@ -37,13 +34,6 @@ func WithOverflow(n int) Option {
 func WithLimit(n int) Option {
 	return Option(func(tszList *List) {
 		tszList.limit = n
-	})
-}
-
-// WithFastMode
-func WithFastMode(enabled bool) Option {
-	return Option(func(tszList *List) {
-		tszList.fastmode = enabled
 	})
 }
 
@@ -69,7 +59,7 @@ func (l *internalList) len() int {
 }
 
 func (l *internalList) front(n int) []DataPoint {
-	ret := make([]DataPoint, 0)
+	ret := make([]DataPoint, 0, n)
 	front := l.il.Front()
 
 	for i := 0; i < n; i++ {
@@ -133,9 +123,6 @@ func (tl *List) Push(t int64, v float64) {
 
 		bk.Block.Finish()
 		tl.l.PushFront(bk)
-		if tl.fastmode {
-			tl.remainBlock = tl.currBlock
-		}
 		tl.currBlock = &internalList{lcap: tl.blockCap}
 	}
 
@@ -167,7 +154,7 @@ func (tl *List) Cap() int {
 	tl.Lock()
 	defer tl.Unlock()
 
-	return tl.total
+	return tl.limit + tl.blockCap
 }
 
 // GetN
@@ -183,17 +170,14 @@ func (tl *List) GetN(n int) []DataPoint {
 		if tl.currBlock.len() >= n {
 			return tl.currBlock.front(n)
 		}
-		if tl.fastmode && tl.remainBlock.len() >= n {
-			return tl.remainBlock.front(n)
-		}
 	}
 
-	ret := make([]DataPoint, 0)
+	ret := make([]DataPoint, 0, n)
 	ret = append(ret, tl.currBlock.front(tl.blockCap)...)
 	n -= tl.currBlock.len()
 
 	front := tl.l.Front()
-	l := make([]DataPoint, 0)
+	l := make([]DataPoint, 0, tl.blockCap)
 	for {
 		if front == nil || n < 0 {
 			break
