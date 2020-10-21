@@ -1,6 +1,7 @@
 package tszlist
 
 import (
+	"container/list"
 	"math/rand"
 	"testing"
 
@@ -48,21 +49,76 @@ func TestListGet(t *testing.T) {
 	assert.Equal(t, r[9].Timestamp, int64(1015))
 }
 
-func BenchmarkWrite(b *testing.B) {
-	l := NewList(2 << 16)
-	for i := 0; i < b.N; i++ {
-		l.Push(int64(i), float64(i)*1.10)
+type StdList struct {
+	l     list.List
+	limit int
+}
+
+func NewStdList(limit int) *StdList {
+	return &StdList{limit: limit}
+}
+
+func (sl *StdList) Push(t int64, v float64) {
+	sl.l.PushFront(DataPoint{Timestamp: t, Value: v})
+
+	if sl.l.Len() > sl.limit {
+		sl.l.Remove(sl.l.Back())
 	}
 }
 
-func BenchmarkRead(b *testing.B) {
-	l := NewList(255)
-	for i := 0; i < 255; i++ {
-		l.Push(int64(i), float64(i)*1.10)
+func (sl *StdList) GetN(limit int) []DataPoint {
+	front := sl.l.Front()
+	ret := make([]DataPoint, 0)
+	n := 0
+
+	for {
+		if front == nil || n > limit {
+			break
+		}
+		ret = append(ret, front.Value.(DataPoint))
+		n++
+		front = front.Next()
+	}
+
+	return ret
+}
+
+const listCap = 2 << 16
+
+func BenchmarkTszListWrite(b *testing.B) {
+	l := NewList(listCap)
+	for i := 0; i < b.N; i++ {
+		l.Push(int64(i), float64(i)*1.12)
+	}
+}
+
+func BenchmarkStdListWrite(b *testing.B) {
+	l := NewList(listCap)
+	for i := 0; i < b.N; i++ {
+		l.Push(int64(i), float64(i)*1.12)
+	}
+}
+
+func BenchmarkTszListRead(b *testing.B) {
+	l := NewList(256)
+	for i := 0; i < 256; i++ {
+		l.Push(int64(i), float64(i)*1.12)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.GetN(int(rand.Int63n(50)))
+		l.GetN(int(rand.Int63n(24)))
+	}
+}
+
+func BenchmarkStdListRead(b *testing.B) {
+	l := NewStdList(256)
+	for i := 0; i < 256; i++ {
+		l.Push(int64(i), float64(i)*1.12)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		l.GetN(int(rand.Int63n(24)))
 	}
 }

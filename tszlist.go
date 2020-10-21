@@ -7,7 +7,7 @@ import (
 	"github.com/dgryski/go-tsz"
 )
 
-const defaultOverflow = 20
+const defaultOverflow = 30
 
 // List represents the safe-tszlist
 type List struct {
