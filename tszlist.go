@@ -30,13 +30,6 @@ func WithOverflow(n int) Option {
 	})
 }
 
-// WithLimit
-func WithLimit(n int) Option {
-	return Option(func(tszList *List) {
-		tszList.limit = n
-	})
-}
-
 // DataPoint
 type DataPoint struct {
 	Timestamp int64
