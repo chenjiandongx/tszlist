@@ -157,10 +157,19 @@ func (tl *List) Cap() int {
 	return tl.limit + tl.blockCap
 }
 
+// GetAll
+func (tl *List) GetAll() []DataPoint {
+	return tl.GetN(tl.limit)
+}
+
 // GetN
 func (tl *List) GetN(n int) []DataPoint {
 	tl.Lock()
 	defer tl.Unlock()
+
+	if n < 0 {
+		n = 0
+	}
 
 	if n > tl.limit {
 		n = tl.limit

@@ -21,6 +21,8 @@ func TestListPush(t *testing.T) {
 func TestListGet(t *testing.T) {
 	limit := 100
 	l := NewList(limit)
+	assert.Equal(t, len(l.GetN(1)), 0)
+
 	for i := 1; i <= 1024; i++ {
 		l.Push(int64(i), float64(i)*3.14)
 	}
