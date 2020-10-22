@@ -8,11 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const factor = 3.14
+
 func TestListPush(t *testing.T) {
 	limit := 50
 	l := NewList(limit)
 	for i := 0; i < 70; i++ {
-		l.Push(int64(i), float64(i)*3.14)
+		l.Push(int64(i), float64(i)*factor)
 	}
 
 	assert.Equal(t, l.Len(), limit)
@@ -25,28 +27,38 @@ func TestListGet(t *testing.T) {
 	assert.Equal(t, len(l.GetN(1)), 0)
 
 	for i := 1; i <= 1024; i++ {
-		l.Push(int64(i), float64(i)*3.14)
+		l.Push(int64(i), float64(i)*factor)
 	}
 
 	r := l.GetN(1)
 	assert.Equal(t, r[0].Timestamp, int64(1024))
+	assert.Equal(t, r[0].Value, float64(1024)*factor)
 
 	r = l.GetN(20)
 	assert.Equal(t, r[0].Timestamp, int64(1024))
+	assert.Equal(t, r[0].Value, float64(1024)*factor)
+
 	assert.Equal(t, r[19].Timestamp, int64(1005))
+	assert.Equal(t, r[19].Value, float64(1005)*factor)
 
 	r = l.GetN(100)
 	assert.Equal(t, l.Len(), 100)
 	assert.Equal(t, len(r), 100)
+
 	assert.Equal(t, r[1].Timestamp, int64(1023))
+	assert.Equal(t, r[1].Value, float64(1023)*factor)
+
 	assert.Equal(t, r[99].Timestamp, int64(925))
+	assert.Equal(t, r[99].Value, float64(925)*factor)
 
 	l.ResetLimit(10)
 	assert.Equal(t, l.Len(), 10)
+	assert.Equal(t, len(l.GetAll()), 10)
 
 	r = l.GetN(100)
 	assert.Equal(t, len(r), 10)
 	assert.Equal(t, r[9].Timestamp, int64(1015))
+	assert.Equal(t, r[9].Value, float64(1015)*factor)
 }
 
 type StdList struct {
@@ -83,42 +95,45 @@ func (sl *StdList) GetN(limit int) []DataPoint {
 	return ret
 }
 
-const listCap = 2 << 16
+const listWriteCap = 2 << 16
 
 func BenchmarkTszListWrite(b *testing.B) {
-	l := NewList(listCap)
+	l := NewList(listWriteCap)
 	for i := 0; i < b.N; i++ {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 }
 
 func BenchmarkStdListWrite(b *testing.B) {
-	l := NewList(listCap)
+	l := NewList(listWriteCap)
 	for i := 0; i < b.N; i++ {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 }
 
+const listReadCap = 2 << 8
+const listSearch = 2 << 4
+
 func BenchmarkTszListRead(b *testing.B) {
-	l := NewList(256)
-	for i := 0; i < 256; i++ {
+	l := NewList(listReadCap)
+	for i := 0; i < listReadCap; i++ {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.GetN(int(rand.Int63n(24)))
+		l.GetN(int(rand.Int63n(listSearch)))
 	}
 }
 
 func BenchmarkStdListRead(b *testing.B) {
-	l := NewStdList(256)
-	for i := 0; i < 256; i++ {
+	l := NewStdList(listReadCap)
+	for i := 0; i < listReadCap; i++ {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.GetN(int(rand.Int63n(24)))
+		l.GetN(int(rand.Int63n(listSearch)))
 	}
 }

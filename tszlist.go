@@ -23,14 +23,15 @@ type List struct {
 // Option sets the List options
 type Option func(*List)
 
-// WithOverflow
+// WithOverflow sets the overflow option for the list
+// overflow is the count of the extra datapoints. In other words, the list capacity is `limit+overflow` actually
 func WithOverflow(n int) Option {
 	return Option(func(tszList *List) {
 		tszList.blockCap = n
 	})
 }
 
-// DataPoint
+// DataPoint is the (timestamp, value) tuple
 type DataPoint struct {
 	Timestamp int64
 	Value     float64
@@ -77,7 +78,7 @@ func newBlock(t uint32) *internalBlock {
 	return &internalBlock{Block: tsz.New(t)}
 }
 
-// NewList
+// NewList returns a new tszlist.List instance
 func NewList(limit int, opts ...Option) *List {
 	tl := &List{limit: limit, blockCap: defaultOverflow}
 	for _, opt := range opts {
@@ -88,7 +89,7 @@ func NewList(limit int, opts ...Option) *List {
 	return tl
 }
 
-// ResetLimit
+// ResetLimit allows to reset the list capacity(limit) at runtime
 func (tl *List) ResetLimit(limit int) {
 	tl.Lock()
 	defer tl.Unlock()
@@ -109,13 +110,13 @@ func (tl *List) Push(t int64, v float64) {
 	if tl.currBlock.frozen {
 		dps := reserveDps(tl.currBlock.front(tl.blockCap))
 
-		bk := newBlock(uint32(dps[0].Timestamp))
+		block := newBlock(uint32(dps[0].Timestamp))
 		for i := 0; i < len(dps); i++ {
-			bk.push(uint32(dps[i].Timestamp), dps[i].Value)
+			block.push(uint32(dps[i].Timestamp), dps[i].Value)
 		}
 
-		bk.Block.Finish()
-		tl.l.PushFront(bk)
+		block.Block.Finish()
+		tl.l.PushFront(block)
 		tl.currBlock = &internalList{lcap: tl.blockCap}
 	}
 
@@ -131,7 +132,7 @@ func (tl *List) removeBack() {
 	}
 }
 
-// Len
+// Len returns the length of the List
 func (tl *List) Len() int {
 	tl.Lock()
 	defer tl.Unlock()
@@ -142,7 +143,7 @@ func (tl *List) Len() int {
 	return tl.total
 }
 
-// Cap
+// Cap returns the capacity of the List
 func (tl *List) Cap() int {
 	tl.Lock()
 	defer tl.Unlock()
@@ -150,18 +151,18 @@ func (tl *List) Cap() int {
 	return tl.limit + tl.blockCap
 }
 
-// GetAll
+// GetAll returns all datapoints in the List
 func (tl *List) GetAll() []DataPoint {
 	return tl.GetN(tl.limit)
 }
 
-// GetN
+// GetN returns N datapoints in the List
 func (tl *List) GetN(n int) []DataPoint {
 	tl.Lock()
 	defer tl.Unlock()
 
-	if n < 0 {
-		n = 0
+	if n <= 0 {
+		return nil
 	}
 
 	if n > tl.limit {
