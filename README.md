@@ -70,6 +70,7 @@ BenchmarkStdListRead-12          4683820               262 ns/op             644
 ```shell
 # List limit: 240, overflow: 20; search: rand.Int63(30)
 # overflow 为 30，limit 为 239，所以此时落在头部 internallist 的数据点数量为 240 % 25 = 15
+# 一半的查询需要对 block 进行 decode 操作，性能优于 overflow 阈值为 30 时候的情况
 
 BenchmarkTszListRead-12          1000000              1071 ns/op            1237 B/op          4 allocs/op
 BenchmarkStdListRead-12          4389102               269 ns/op             644 B/op          4 allocs/op
@@ -98,7 +99,7 @@ tszlist 最大的优势是内存占用要明显小于使用标准库链表实现
 
 **LTTB 降采样：CPU 峰值波动变小**
 
-> LTTB（Largest-Triangel-One-Bucket）是一种时序数据的降采样绘图方式，算法本身不会对数据的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[SS_MSthesis.pdf](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
+> LTTB（Largest-Triangel-Three-Bucket）是一种时序数据的降采样绘图方式，算法本身不会对数据的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[SS_MSthesis.pdf](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
 
 ![LTTB](https://user-images.githubusercontent.com/19553554/97100076-db193800-16ca-11eb-86df-97e06b847a9d.jpg)
 
