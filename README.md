@@ -9,13 +9,13 @@
 
 ## Motivation
 
-时序数据库（TSDB）在最近几年受到了广泛的关注，而时序数据的压缩算法很大程度上决定了 TSDB 的性能。目前在业界被广泛使用的压缩算法是来自 Fackbook 的一篇论文 [Gorilla: A fast, scalable, in-memory time series database](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf)，包括 [Prometheus](https://prometheus.io/), [InfluxDB](https://www.influxdata.com/), [M3](https://m3db.io/), [TimescaleDB](https://www.timescale.com/) 在内的多种 TSDB 实现都使用了 Gorilla 中提到的 delta-of-delta 和 XOR 来分别压缩 Timestamp（int64）和 Value（float64）数据。改算法极大的压缩了存储数据点所需要的内存，收益明显。
+时序数据库（TSDB）在最近几年受到了广泛的关注，而时序数据的压缩算法很大程度上决定了 TSDB 的性能。目前在业界被广泛使用的压缩算法是来自 Fackbook 的一篇论文 [Gorilla: A fast, scalable, in-memory time series database](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf)，包括 [Prometheus](https://prometheus.io/), [InfluxDB](https://www.influxdata.com/), [M3](https://m3db.io/), [TimescaleDB](https://www.timescale.com/) 在内的多种 TSDB 实现都使用了 Gorilla 中提到的 delta-of-delta 和 XOR 来分别压缩 Timestamp（int64）和 Value（float64）数据，该算法极大的压缩了存储数据点所需要的内存，收益明显。
 
 TSDB 大多数时候都是满足监控场景的需求，这里先介绍两个概念：
 * 数据点: 时序数据的数据点是一个包含 (timestamp, value) 的二元组。
 * 时间线：不同 tag 的组合称为不同的时间线，比如 `{"__name__": "netspeed", "host": "localhost", "iface": "eth0"}`, `{"__name__": "netspeed", "host": "localhost", "iface": "eth1"}`。
 
-我司内部的秒级监控系统（Neo）师承 [open-falcon](https://github.com/open-falcon)，不过进行了大量的重构和优化，其中的 neo-judge 组件承担着判定数据数据是否需要告警的任务，也就是说，该组件需要存储不同时间线最近 N 个数据点用来与告警规则做判定。**从数据结构上来讲，这是一种有限长度的列表，超过长度限制时淘汰旧数据。** 且一般来讲，判定规则只需要查询最近 n 个点（n << N）。
+我司内部的秒级监控系统（Neo）师承 [open-falcon](https://github.com/open-falcon)，不过进行了大量的重构和优化，其中的 neo-judge 组件承担着判定数据数据是否需要告警的任务，也就是说，该组件需要存储不同时间线最近 N 个数据点用来与告警规则做判定。**这是一种有限长度的缓存策略，超过长度限制时淘汰旧数据。** 且一般来讲，判定规则只需要查询最近 n 个点（n << N）。
 
 tszlist 是一种对以上特殊场景进行优化的数据结构，数据按 block 存储，列表冗余多一个 block, 该 block 使用 Golang 标准库 List 来存储，一旦 block 大小达到阈值（Overflow），冻结（Frozen）该 block，并使用 Gorilla 算法进行压缩，并追加至全局链表中，整体链表长度达到设置的 limit 阈值的话，删除尾部 block。
 
@@ -42,7 +42,7 @@ BenchmarkStdListWrite-12         7649355               150 ns/op             102
 
 ### Read-Operation
 
-tszlist 在读取最近 n 个点时（如果 n 个点都在头部 internallist 中），略快于标准库；需要 decode block 时效率慢于标准库。
+tszlist 在读取最近 n 个点时（如果 n 个点都在头部 internallist 中），略快于标准库；当需要读取的数据已经 frozen 时 decode block 时效率慢于标准库。
 
 不过这个很大程度上取决于 Overflow 和 Limit 阈值的设置，不同比例的阈值会有极大的性能差异。
 
@@ -98,7 +98,7 @@ tszlist 最大的优势是其内存占用要明显小于使用标准库列表实
 
 **LTTB 降采样：CPU 峰值波动变小**
 
-> LTTB 是一种时序数据的降采样绘图方式，该算法不会对数据本身的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[SS_MSthesis.pdf](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
+> LTTB（Largest-Triangel-One-Bucket）是一种时序数据的降采样绘图方式，算法本身不会对数据的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[SS_MSthesis.pdf](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
 
 ![LTTB](https://user-images.githubusercontent.com/19553554/97100076-db193800-16ca-11eb-86df-97e06b847a9d.jpg)
 
