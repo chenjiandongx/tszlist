@@ -11,8 +11,8 @@ const defaultOverflow = 30
 
 // List represents the safe-tszlist
 type List struct {
-	sync.Mutex
 	l         list.List
+	mux       sync.Mutex
 	currBlock *internalList
 	blockCap  int
 	limit     int
@@ -91,8 +91,8 @@ func NewList(limit int, opts ...Option) *List {
 
 // ResetLimit allows to reset the list capacity(limit) at runtime
 func (tl *List) ResetLimit(limit int) {
-	tl.Lock()
-	defer tl.Unlock()
+	tl.mux.Lock()
+	defer tl.mux.Unlock()
 
 	tl.limit = limit
 	tl.removeBack()
@@ -100,8 +100,8 @@ func (tl *List) ResetLimit(limit int) {
 
 // Push pushes (t, v) tuple to the list
 func (tl *List) Push(t int64, v float64) {
-	tl.Lock()
-	defer tl.Unlock()
+	tl.mux.Lock()
+	defer tl.mux.Unlock()
 
 	tl.total++
 	tl.currBlock.push(uint32(t), v)
@@ -134,8 +134,8 @@ func (tl *List) removeBack() {
 
 // Len returns the length of the List
 func (tl *List) Len() int {
-	tl.Lock()
-	defer tl.Unlock()
+	tl.mux.Lock()
+	defer tl.mux.Unlock()
 
 	if tl.total > tl.limit {
 		return tl.limit
@@ -145,8 +145,8 @@ func (tl *List) Len() int {
 
 // Cap returns the capacity of the List
 func (tl *List) Cap() int {
-	tl.Lock()
-	defer tl.Unlock()
+	tl.mux.Lock()
+	defer tl.mux.Unlock()
 
 	return tl.limit + tl.blockCap
 }
@@ -158,8 +158,8 @@ func (tl *List) GetAll() []DataPoint {
 
 // GetN returns N datapoints in the List
 func (tl *List) GetN(n int) []DataPoint {
-	tl.Lock()
-	defer tl.Unlock()
+	tl.mux.Lock()
+	defer tl.mux.Unlock()
 
 	if n <= 0 {
 		return nil

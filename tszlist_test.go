@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ func TestListPush(t *testing.T) {
 	}
 
 	assert.Equal(t, l.Len(), limit)
-	assert.Equal(t, l.Cap(), limit+20)
+	assert.Equal(t, l.Cap(), limit+30)
 }
 
 func TestListGet(t *testing.T) {
@@ -95,7 +96,7 @@ func (sl *StdList) GetN(limit int) []DataPoint {
 	return ret
 }
 
-const listWriteCap = 2 << 16
+const listWriteCap = 20000 // 2w
 
 func BenchmarkTszListWrite(b *testing.B) {
 	l := NewList(listWriteCap)
@@ -111,16 +112,15 @@ func BenchmarkStdListWrite(b *testing.B) {
 	}
 }
 
-const listReadCap = 2 << 8
-const listSearch = 2 << 4
+const listReadCap = 240
+const listSearch = 30
 
 func BenchmarkTszListRead(b *testing.B) {
-	l := NewList(listReadCap)
+	l := NewList(listReadCap, WithOverflow(25))
 	for i := 0; i < listReadCap; i++ {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		l.GetN(int(rand.Int63n(listSearch)))
 	}
@@ -132,8 +132,42 @@ func BenchmarkStdListRead(b *testing.B) {
 		l.Push(int64(i), float64(i)*1.12)
 	}
 
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		l.GetN(int(rand.Int63n(listSearch)))
 	}
+}
+
+const seriesCnt = 200000 // 20w
+const listLimit = 20
+
+func newStdList() {
+	ls := make([]*StdList, 0, seriesCnt)
+
+	now := time.Now().Unix()
+	for i := 0; i < seriesCnt; i++ {
+		l := NewStdList(listLimit)
+		for j := 0; j < listLimit; j++ {
+			l.Push(now, float64(j)*1.12)
+			now = now + 5
+		}
+		ls = append(ls, l)
+	}
+
+	time.Sleep(time.Minute)
+}
+
+func newTszList() {
+	ls := make([]*List, 0, seriesCnt)
+
+	now := time.Now().Unix()
+	for i := 0; i < seriesCnt; i++ {
+		l := NewList(listLimit, WithOverflow(15))
+		for j := 0; j < listLimit; j++ {
+			l.Push(now, float64(j)*1.12)
+			now = now + 5
+		}
+		ls = append(ls, l)
+	}
+
+	time.Sleep(time.Minute)
 }
