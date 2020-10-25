@@ -2,6 +2,11 @@
 
 🔗 tszlist 是一种对时序数据优化的链表。
 
+[![GoDoc](https://godoc.org/github.com/chenjiandongx/tszlist?status.svg)](https://godoc.org/github.com/chenjiandongx/tszlist)
+[![Travis](https://travis-ci.org/chenjiandongx/tszlist.svg?branch=master)](https://travis-ci.org/chenjiandongx/tszlist)
+[![Go Report Card](https://goreportcard.com/badge/github.com/chenjiandongx/tszlist)](https://goreportcard.com/report/github.com/chenjiandongx/tszlist)
+[![License](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://opensource.org/licenses/MIT)
+
 ## Motivation
 
 时序数据库（TSDB）在最近几年受到了广泛的关注，而时序数据的压缩算法很大程度上决定了 TSDB 的性能。目前在业界被广泛使用的压缩算法是来自 Fackbook 的一篇论文 [Gorilla: A fast, scalable, in-memory time series database](http://www.vldb.org/pvldb/vol8/p1816-teller.pdf)，包括 [Prometheus](https://prometheus.io/), [InfluxDB](https://www.influxdata.com/), [M3](https://m3db.io/), [TimescaleDB](https://www.timescale.com/) 在内的多种 TSDB 实现都使用了 Gorilla 中提到的 delta-of-delta 和 XOR 来分别压缩 Timestamp（int64）和 Value（float64）数据。改算法极大的压缩了存储数据点所需要的内存，收益明显。
