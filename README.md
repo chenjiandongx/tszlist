@@ -1,6 +1,6 @@
 # tszlist
 
-🔗 tszlist 是一种对时序数据优化的线程安全链表。
+🔗 tszlist 是一种时序数据线程安全链表。
 
 [![GoDoc](https://godoc.org/github.com/chenjiandongx/tszlist?status.svg)](https://godoc.org/github.com/chenjiandongx/tszlist)
 [![Travis](https://travis-ci.org/chenjiandongx/tszlist.svg?branch=master)](https://travis-ci.org/chenjiandongx/tszlist)
@@ -21,8 +21,14 @@ tszlist 是一种对以上特殊场景进行优化的数据结构，数据按 bl
 
 ## Installation
 
+go get
 ```shell
 $ go get -u github.com/chenjiandongx/tszlist
+```
+
+go mod
+```shell
+require github.com/chenjiandongx/tszlist
 ```
 
 ## Performance
@@ -31,7 +37,7 @@ $ go get -u github.com/chenjiandongx/tszlist
 
 ### Write-Operation
 
-tszlist 写性能与标准库相差不大。
+tszlist 写性能与标准库实现相差不大。
 
 ```shell
 # List limit: 200000
@@ -42,7 +48,7 @@ BenchmarkStdListWrite-12         7649355               150 ns/op             102
 
 ### Read-Operation
 
-tszlist 在读取最近 n 个点时（如果 n 个点都在头部 internallist 中），略快于标准库；当需要读取的数据已经 frozen 时，decode block 时效率慢于标准库。
+tszlist 在读取最近 n 个点时（如果 n 个点都在头部 internallist 中），略快于标准库实现；当需要读取的数据已经 frozen 时，decode block 时效率慢于标准库实现。
 
 不过这个很大程度上取决于 Overflow 和 Limit 阈值的设置，不同比例的阈值会有极大的性能差异。
 
@@ -99,7 +105,8 @@ tszlist 最大的优势是内存占用要明显小于使用标准库链表实现
 
 **LTTB 降采样：CPU 峰值波动变小**
 
-> LTTB（Largest-Triangel-Three-Bucket）是一种时序数据的降采样绘图方式，算法本身不会对数据的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[SS_MSthesis.pdf](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
+> LTTB（Largest-Triangel-Three-Bucket）是一种时序数据的降采样绘图方式，算法本身不会对数据的数值进行任何修改，尽量保证绘图时波峰波谷细节。论文地址：[DOWNSAMPLING TIME SERIES FOR VISUAL
+REPRESENTATION](https://skemman.is/bitstream/1946/15343/3/SS_MSthesis.pdf)
 
 ![LTTB](https://user-images.githubusercontent.com/19553554/97100076-db193800-16ca-11eb-86df-97e06b847a9d.jpg)
 
